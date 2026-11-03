@@ -1,0 +1,26 @@
+#!/bin/bash
+# Speech command for the Exult TTS patch: speak "$1" with Piper through aplay, then exit.
+# Exult runs it in its own process group and kills that group to cut speech off,
+# so this script never has to stop other piper/aplay processes.
+# Install: copy to Exult's <DATA> dir (/usr/local/share/exult after `make install`), chmod +x.
+set -u
+
+text=${1-}
+[ -n "$text" ] || exit 0
+
+# Overridable: EXULT_TTS_PIPER (piper binary), EXULT_TTS_VOICE (voice .onnx file),
+# EXULT_TTS_MODEL (voice name under $PIPER_DIR/models).
+PIPER_DIR=${EXULT_TTS_PIPER_DIR:-$HOME/.local/share/piper}
+PIPER=${EXULT_TTS_PIPER:-$PIPER_DIR/piper}
+MODEL=${EXULT_TTS_MODEL:-en_GB-jenny_dioco-medium}
+MODEL_FILE=${EXULT_TTS_VOICE:-$PIPER_DIR/models/$MODEL.onnx}
+HISTORY_FILE=${EXULT_TTS_HISTORY:-}    # Set to a path to log every line spoken.
+
+[ -n "$HISTORY_FILE" ] && printf '%s\n' "$text" >> "$HISTORY_FILE"
+
+# Piper's sample rate comes from the model config (22050 for the medium voices).
+rate=$(grep -o '"sample_rate": *[0-9]*' "$MODEL_FILE.json" 2>/dev/null | grep -o '[0-9]*$')
+printf '%s\n' "$text" |
+	"$PIPER" --model "$MODEL_FILE" --config "$MODEL_FILE.json" --output-raw 2>/dev/null |
+	aplay -q -r "${rate:-22050}" -f S16_LE -t raw - 2>/dev/null
+exit 0

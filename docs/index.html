@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exult TTS: Ultima VII conversations, books and scrolls read aloud</title>
+<meta name="description" content="A patch for Exult, the Ultima VII engine, that reads conversation lines, books and scrolls aloud with Piper text-to-speech, starting each conversation with the speaker&#39;s name." />
+<meta name="author" content="zirize" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://zirize.github.io/exult-tts/" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://zirize.github.io/exult-tts/" />
+<meta property="og:title" content="Exult TTS: Ultima VII conversations, books and scrolls read aloud" />
+<meta property="og:description" content="A patch for Exult, the Ultima VII engine, that reads conversation lines, books and scrolls aloud with Piper text-to-speech, starting each conversation with the speaker&#39;s name." />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Exult TTS: Ultima VII conversations, books and scrolls read aloud",
+  "description": "A patch for Exult, the Ultima VII engine, that reads conversation lines, books and scrolls aloud with Piper text-to-speech.",
+  "url": "https://zirize.github.io/exult-tts/",
+  "author": { "@type": "Person", "name": "zirize", "url": "https://github.com/zirize" },
+  "about": ["Exult", "Ultima VII", "text-to-speech", "Piper TTS", "accessibility"]
+}
+</script>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--border:#2d3148;--accent:#7c6af7;--accent2:#56c8a0;--text:#e2e4ef;--muted:#8b90b0;--radius:10px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:16px;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+header{background:linear-gradient(135deg,#1a1d27 0%,#12141e 100%);border-bottom:1px solid var(--border);padding:56px 20px 44px;text-align:center}
+header h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+header p{font-size:1.05rem;color:var(--muted);max-width:620px;margin:0 auto 22px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btns a{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:.9rem;font-weight:500}
+.btns a:hover{text-decoration:none;border-color:var(--accent)}
+.btns a.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:820px;margin:0 auto;padding:48px 20px;flex:1}
+h2{font-size:1.35rem;margin:44px 0 14px;color:var(--text)}
+h2:first-child{margin-top:0}
+h3{font-size:1.05rem;margin:28px 0 10px;color:var(--accent2)}
+p{margin-bottom:14px;color:var(--text)}
+ul,ol{margin:0 0 16px 22px}
+li{margin-bottom:8px}
+code{font-family:ui-monospace,'Cascadia Code',Menlo,monospace;font-size:.88em;background:#12141e;border:1px solid var(--border);border-radius:5px;padding:1px 6px}
+pre{background:#12141e;border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow-x:auto;margin-bottom:16px}
+pre code{background:none;border:none;padding:0;font-size:.85rem;line-height:1.6}
+table{width:100%;border-collapse:collapse;margin-bottom:18px;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px}
+.symptoms{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:var(--radius);padding:20px 24px 8px;margin-bottom:8px}
+.note{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;font-size:.93rem;color:var(--muted)}
+.note strong{color:var(--text)}
+footer{text-align:center;padding:32px 20px;border-top:1px solid var(--border);color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>Exult TTS: Ultima VII conversations, books and scrolls read aloud</h1>
+  <p>A patch for the Exult engine that speaks what the characters say — prefixed with who is saying it — and reads books and scrolls, using Piper or any speech command you like.</p>
+  <div class="btns">
+    <a class="primary" href="https://github.com/zirize/exult-tts">Patch on GitHub</a>
+    <a href="https://exult.info/">Exult</a>
+  </div>
+</header>
+<main>
+
+<div class="symptoms">
+<p>This is for you if:</p>
+<ul>
+<li>The Ultima VII font is <strong>hard to read</strong> at modern resolutions, and you would rather <strong>listen</strong> to the conversations.</li>
+<li>You want Ultima VII to work as an <strong>audio game</strong> for the dialogue: every NPC line spoken, with the <strong>speaker's name</strong> first (<code>Iolo: ...</code>).</li>
+<li>You want the long <strong>books and scrolls</strong> read to you instead of paging through them.</li>
+<li>You want a <strong>text log</strong> of everything said in a conversation, to read back later.</li>
+</ul>
+</div>
+
+<h2>What the patch does</h2>
+
+<h3>Conversations</h3>
+<p>Each page of an NPC's speech is spoken as it appears on screen. Clicking on to the next page cuts the voice off and starts the next page, so you never wait for a long line to finish. The first page is prefixed with the NPC's name; nameless NPCs get no prefix, and the Avatar's lines carry the name you chose.</p>
+<p>Exult's conversation code only knows the <em>face</em> it is showing, not who owns it. The name is taken one level up, where the usecode shows an NPC's face and still has the actor, and passed down with the face.</p>
+
+<h3>Books and scrolls</h3>
+<p>The visible pages are read when a book or scroll opens and each time you turn the page. Exult repaints these windows often, so a page that was already spoken is not repeated. Closing the book stops the voice.</p>
+
+<h3>Clean text</h3>
+<p>The game's text carries markup meant for its fonts: <code>*</code> for a page break, <code>~</code>, <code>^</code> for capitals, <code>@</code> for quote marks, and font-mapped bytes. These are turned into plain sentences before they reach the speech engine.</p>
+
+<h3>A history in the terminal</h3>
+<p>Every line is printed to standard output as <code>TTS: &lt;line&gt;</code>, voice on or off. Start Exult from a terminal and you get a readable transcript; <code>exult | tee talk.log</code> keeps it.</p>
+
+<h3>An on/off switch</h3>
+<p>The Audio options screen gets a <strong>Read aloud</strong> row, saved in <code>exult.cfg</code>. It says "Read aloud (no command)" if the speech command cannot be found.</p>
+
+<div class="note"><strong>Safe with any game text.</strong> The speech command is started with <code>posix_spawn</code>, not a shell, so quotes and symbols in the text cannot break it. It runs in its own process group and is stopped by signalling that group — no other speech programs on your system are touched.</div>
+
+<h2>Build Exult with the patch</h2>
+
+<p>The patch is against upstream Exult commit <code>97984e9e0cbb4ccacaab0249da9c51b533818f74</code> (2026-10-29). It uses POSIX process calls; on other platforms the voice is simply off.</p>
+
+<pre><code>git clone https://github.com/exult/exult.git
+cd exult
+git checkout 97984e9e0cbb4ccacaab0249da9c51b533818f74
+git apply /path/to/exult-tts/exult_tts.patch
+autoreconf -i &amp;&amp; ./configure &amp;&amp; make
+sudo make install</code></pre>
+
+<h2>Set up the voice</h2>
+
+<p>Exult runs the command in <code>config/audio/tts/command</code> with the line as its only argument. By default that is <code>tts_wrapper</code> in Exult's data directory (<code>/usr/local/share/exult</code> after the install above). Any program that speaks its first argument and exits will do.</p>
+
+<p>The included <code>tts_wrapper</code> uses Piper:</p>
+<ol>
+<li>Unpack a Piper binary from the <a href="https://github.com/rhasspy/piper/releases">Piper releases</a> into <code>~/.local/share/piper/</code>.</li>
+<li>Download a voice — the <code>.onnx</code> and its <code>.onnx.json</code> — from <a href="https://huggingface.co/rhasspy/piper-voices">piper-voices</a> into <code>~/.local/share/piper/models/</code>. The default is <code>en_GB-jenny_dioco-medium</code>.</li>
+<li>Install the wrapper: <code>sudo install -m 755 tts_wrapper /usr/local/share/exult/tts_wrapper</code>.</li>
+</ol>
+
+<table>
+<tr><th>variable</th><th>default</th></tr>
+<tr><td><code>EXULT_TTS_PIPER_DIR</code></td><td><code>~/.local/share/piper</code></td></tr>
+<tr><td><code>EXULT_TTS_PIPER</code></td><td><code>$EXULT_TTS_PIPER_DIR/piper</code></td></tr>
+<tr><td><code>EXULT_TTS_MODEL</code></td><td><code>en_GB-jenny_dioco-medium</code></td></tr>
+<tr><td><code>EXULT_TTS_VOICE</code></td><td><code>$EXULT_TTS_PIPER_DIR/models/$EXULT_TTS_MODEL.onnx</code></td></tr>
+<tr><td><code>EXULT_TTS_HISTORY</code></td><td>unset; a file to append every spoken line to</td></tr>
+</table>
+
+<p>At startup Exult logs <code>TTS: using &lt;path&gt;</code>, or <code>TTS: &lt;path&gt; not executable, voice off</code>.</p>
+
+<h2>Tested on</h2>
+
+<p>Ubuntu 26.04.1 LTS with Exult <code>97984e9</code> and Ultima VII game data: conversations read aloud with the speaker's name, and the Read aloud switch in Audio options. The patch applies cleanly to a fresh checkout of that commit and builds, and the included standalone test (<code>make check</code>) covers the name prefix, markup cleanup, cut-off and book repaint handling.</p>
+
+<p>Books and scrolls were not tried in game; they are covered only by <code>make check</code>. The <code>sudo make install</code> layout above was not itself run; the game was played from a local build with the wrapper in its data directory.</p>
+
+<p>Not affiliated with the Exult team and not submitted upstream. The patch carries Exult's licence (GPLv2).</p>
+
+</main>
+<footer>
+  <p>Made by <a href="https://github.com/zirize">zirize</a> &middot; <a href="https://zirize.github.io/">More projects</a></p>
+</footer>
+</body>
+</html>
