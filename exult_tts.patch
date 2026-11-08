@@ -33,7 +33,7 @@ index 4ba1584..c409571 100644
  	iOS_SetupQuickActions();
  	touchui = new TouchUI_iOS();
 diff --git a/gumps/AudioOptions_gump.cc b/gumps/AudioOptions_gump.cc
-index ad7a34c..6b9c732 100644
+index ad7a34c..96fab92 100644
 --- a/gumps/AudioOptions_gump.cc
 +++ b/gumps/AudioOptions_gump.cc
 @@ -51,6 +51,7 @@
@@ -67,7 +67,7 @@ index ad7a34c..6b9c732 100644
  					   ? (Audio::get_ptr()->is_speech_with_subs() ? speech_on_with_subtitles : speech_on)
  					   : speech_off);
  	midi_looping = Audio::get_ptr()->get_music_looping();
-+	tts_enabled  = TTS_is_enabled() ? 1 : 0;
++	tts_enabled  = !TTS_is_enabled() ? 0 : (TTS_signs_enabled() ? 2 : 1);
  	speaker_type = true;    // stereo
  	sample_rate  = 44100;
  	config->value("config/audio/stereo", speaker_type, speaker_type);
@@ -80,13 +80,16 @@ index ad7a34c..6b9c732 100644
  
  	const Exult_Game  game  = Game::get_game_type();
  	const std::string title = Game::get_gametitle();
-@@ -612,15 +619,18 @@ AudioOptions_gump::AudioOptions_gump() : Modal_gump(nullptr, -1) {
+@@ -612,15 +619,21 @@ AudioOptions_gump::AudioOptions_gump() : Modal_gump(nullptr, -1) {
  	// audio on/off
  	buttons[id_audio_enabled] = std::make_unique<AudioEnabledToggle>(
  			this, &AudioOptions_gump::toggle_audio_enabled, audio_enabled, procedural_background.w - 59, yForRow(1), 59);
 +	// Text-to-speech on/off (an external command, independent of Exult's mixer).
-+	buttons[id_tts] = std::make_unique<AudioEnabledToggle>(
-+			this, &AudioOptions_gump::toggle_tts_enabled, tts_enabled, get_button_pos_for_label(tts_label()), yForRow(13), 59);
++	// 0 off, 1 dialogue/books/scrolls, 2 also signs (rune text).
++	std::vector<std::string> tts_options = {"No", "Yes", "Yes + signs"};
++	buttons[id_tts]                      = std::make_unique<AudioTextToggle>(
++            this, &AudioOptions_gump::toggle_tts_enabled, std::move(tts_options), tts_enabled,
++            get_button_pos_for_label(tts_label()), yForRow(13), 108);
  	// Apply
  	buttons[id_apply] = std::make_unique<AudioOptions_button>(
 -			this, &AudioOptions_gump::save_settings, Strings::APPLY(), 25, yForRow(13) + bottomrow_gap, 50);
@@ -102,16 +105,20 @@ index ad7a34c..6b9c732 100644
  
  	rebuild_buttons();
  	do_arrange();
-@@ -687,6 +697,8 @@ void AudioOptions_gump::save_settings() {
+@@ -687,6 +700,12 @@ void AudioOptions_gump::save_settings() {
  	config->set("config/audio/effects/enabled", sfx_enabled ? "yes" : "no", false);
  	config->set("config/audio/speech/enabled", (speech_option != speech_off) ? "yes" : "no", false);
  	config->set("config/audio/speech/with_subs", (speech_option == speech_on_with_subtitles) ? "yes" : "no", false);
 +	TTS_set_enabled(tts_enabled != 0);
 +	config->set("config/audio/tts/enabled", tts_enabled ? "yes" : "no", false);
++	if (tts_enabled) {    // "No" keeps the signs choice for when it is turned back on.
++		TTS_set_signs(tts_enabled == 2);
++		config->set("config/audio/tts/signs", tts_enabled == 2 ? "yes" : "no", false);
++	}
  
  	const char* midi_looping_values[] = {"never", "limited", "auto", "endless"};
  	config->set("config/audio/midi/looping", midi_looping_values[static_cast<int>(midi_looping)], false);
-@@ -782,5 +794,6 @@ void AudioOptions_gump::paint() {
+@@ -782,5 +801,6 @@ void AudioOptions_gump::paint() {
  #endif
  		font->paint_text(iwin->get_ib8(), Strings::Speech_(), x + label_margin, y + yForRow(12) + 1);
  	}
@@ -150,7 +157,7 @@ index 6729d88..d08fbb7 100644
  		speech_option = static_cast<audio_speech_state>(state);
  	}
 diff --git a/gumps/Book_gump.cc b/gumps/Book_gump.cc
-index 032e632..9d82efb 100644
+index 032e632..e49a4c3 100644
 --- a/gumps/Book_gump.cc
 +++ b/gumps/Book_gump.cc
 @@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -166,13 +173,13 @@ index 032e632..9d82efb 100644
  	// Paint right page.
  	curend = paint_page(TileRect(173, 8, 125, 130), curend);
 +	if (curend > curtop) {    // Read the visible page(s) once.
-+		TTS_say(std::string(text + curtop, curend - curtop), std::string(), true);
++		TTS_say(std::string(text + curtop, curend - curtop), "[Book]", true);
 +	}
  	x      = oldx;
  	y      = oldy;
  
 diff --git a/gumps/Scroll_gump.cc b/gumps/Scroll_gump.cc
-index a49ed33..be0d80c 100644
+index a49ed33..f711e88 100644
 --- a/gumps/Scroll_gump.cc
 +++ b/gumps/Scroll_gump.cc
 @@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -188,7 +195,7 @@ index a49ed33..be0d80c 100644
  	paint_shape(x, y);
  	curend = paint_page(TileRect(51, 31, 142, 118), curtop);
 +	if (curend > curtop) {    // Read the visible page(s) once.
-+		TTS_say(std::string(text + curtop, curend - curtop), std::string(), true);
++		TTS_say(std::string(text + curtop, curend - curtop), "[Scroll]", true);
 +	}
  	x      = oldx;
  	y      = oldy;
@@ -215,10 +222,10 @@ index 658e4c2..dbdbc8f 100644
  }
 diff --git a/tts.cc b/tts.cc
 new file mode 100644
-index 0000000..ceb01f9
+index 0000000..6c4e1ea
 --- /dev/null
 +++ b/tts.cc
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,205 @@
 +/*
 + *  tts.cc - Read game text aloud through an external speech command.
 + *
@@ -253,6 +260,7 @@ index 0000000..ceb01f9
 +namespace {
 +	bool        tts_enabled   = false;    // User's choice.
 +	bool        tts_available = false;    // Command found and runnable here.
++	bool        tts_signs     = true;     // Also read rune signs.
 +	std::string tts_command;
 +	std::string last_text;    // Cleaned text last spoken (for only_if_new).
 +#ifdef TTS_POSIX
@@ -318,6 +326,8 @@ index 0000000..ceb01f9
 +	std::string value;
 +	config->value("config/audio/tts/enabled", value, "yes");
 +	tts_enabled = value != "no";
++	config->value("config/audio/tts/signs", value, "yes");
++	tts_signs = value != "no";
 +	config->value("config/audio/tts/command", tts_command, "");
 +	if (tts_command.empty()) {
 +		tts_command = get_system_path("<DATA>/tts_wrapper");
@@ -347,15 +357,56 @@ index 0000000..ceb01f9
 +	}
 +}
 +
++bool TTS_signs_enabled() {
++	return tts_signs;
++}
++
++void TTS_set_signs(bool on) {
++	tts_signs = on;
++}
++
++std::string TTS_runes_to_text(const std::string& runes) {
++	std::string out;
++	out.reserve(runes.size() + 8);
++	for (const char ch : runes) {
++		switch (ch) {
++		case '(':
++			out += "th";
++			break;
++		case ')':
++			out += "ee";
++			break;
++		case '*':
++			out += "ng";
++			break;
++		case '+':
++			out += "ea";
++			break;
++		case ',':
++			out += "st";
++			break;
++		case '|':
++			out += ' ';
++			break;
++		default:
++			out += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
++		}
++	}
++	return out;
++}
++
 +void TTS_say(const std::string& text, const std::string& speaker, bool only_if_new) {
 +	const std::string body = clean_text(text);
 +	if (body.empty() || (only_if_new && body == last_text)) {
 +		return;
 +	}
-+	last_text = body;
-+	const std::string who  = clean_text(speaker);
-+	std::string       line = who.empty() ? body : who + ": " + body;
-+	std::cout << "TTS: " << line << std::endl;
++	last_text                = body;
++	const bool        tag    = !speaker.empty() && speaker.front() == '[';
++	const bool        quiet  = !speaker.empty() && speaker.front() == ':';
++	const std::string who    = clean_text(quiet ? speaker.substr(1) : speaker);
++	const std::string log    = who.empty() ? body : (tag ? who + " " + body : who + ": " + body);
++	const std::string spoken = (who.empty() || tag || quiet) ? body : who + ": " + body;
++	std::cout << "TTS: " << log << std::endl;
 +	if (!tts_enabled || !tts_available) {
 +		return;
 +	}
@@ -365,7 +416,7 @@ index 0000000..ceb01f9
 +	posix_spawnattr_init(&attr);
 +	posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
 +	posix_spawnattr_setpgroup(&attr, 0);    // New group, led by the child.
-+	char* argv[] = {const_cast<char*>(tts_command.c_str()), const_cast<char*>(line.c_str()), nullptr};
++	char* argv[] = {const_cast<char*>(tts_command.c_str()), const_cast<char*>(spoken.c_str()), nullptr};
 +	pid_t pid;
 +	if (posix_spawn(&pid, tts_command.c_str(), nullptr, &attr, argv, environ) == 0) {
 +		speaker_pid = pid;
@@ -382,10 +433,10 @@ index 0000000..ceb01f9
 +}
 diff --git a/tts.h b/tts.h
 new file mode 100644
-index 0000000..4c9944a
+index 0000000..1d1f4f2
 --- /dev/null
 +++ b/tts.h
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,49 @@
 +/*
 + *  tts.h - Read game text aloud through an external speech command.
 + *
@@ -403,6 +454,7 @@ index 0000000..4c9944a
 +// Read the configuration and locate the speech command.  Config keys:
 +//   config/audio/tts/enabled  "yes" (default) or "no"
 +//   config/audio/tts/command  program to run (default "<DATA>/tts_wrapper")
++//   config/audio/tts/signs    "yes" (default) or "no": also read rune signs
 +// The command is run as `command "<text>"` in its own process group and is
 +// expected to speak the text and exit.  Speech is off if it is not executable.
 +void TTS_init();
@@ -411,10 +463,20 @@ index 0000000..4c9944a
 +bool TTS_is_enabled();
 +bool TTS_is_available();
 +void TTS_set_enabled(bool on);    // Stops speech when turned off; not saved here.
++bool TTS_signs_enabled();         // Read signs, plaques and tombstones too.
++void TTS_set_signs(bool on);      // Not saved here.
++
++// Plain text of one line of rune text as stored in usecode: the ligature
++// characters are expanded ('(' TH, ')' EE, '*' NG, '+' EA, ',' ST, '|' space)
++// and the all-capitals text is lowercased so it is not spelled out.
++std::string TTS_runes_to_text(const std::string& runes);
 +
 +// Speak one piece of game text, cutting off whatever is still being spoken.
 +// Exult text markup ('*' page break, '~' line break, '^' capital, '@' quote)
-+// is cleaned up first.  A non-empty speaker is said first ("Iolo: ...").
++// is cleaned up first.  A non-empty speaker is said first ("Iolo: ..."); a
++// leading ':' (":Iolo") keeps the speaker on stdout while omitting it from
++// speech (for subsequent pages), and a bracketed tag ("[Book]", "[Scroll]",
++// "[Sign]") labels stdout without being spoken aloud.
 +// With only_if_new, text identical to the last one spoken is skipped (for
 +// gumps that repaint the same page many times).  Every line is also written
 +// to stdout as "TTS: <line>", voice on or off, as a readable text history.
@@ -425,7 +487,7 @@ index 0000000..4c9944a
 +
 +#endif
 diff --git a/usecode/conversation.cc b/usecode/conversation.cc
-index 7354919..454e8bc 100644
+index 7354919..c99187d 100644
 --- a/usecode/conversation.cc
 +++ b/usecode/conversation.cc
 @@ -37,6 +37,7 @@
@@ -471,30 +533,31 @@ index 7354919..454e8bc 100644
  	repaint_conversation();    // Paint all faces.
  	if (touchui != nullptr) {
  		touchui->hideGameControls();
-@@ -597,7 +603,8 @@ void Conversation::show_npc_message(const char* msg) {
+@@ -597,7 +603,9 @@ void Conversation::show_npc_message(const char* msg) {
  	if (cl >= 0) {
  		position_conv_layer(cl);
  	}
 -	int height;    // Break at punctuation.
-+	int  height;    // Break at punctuation.
-+	bool first_page = true;    // The speaker's name is read before page 1 only.
++	int          height;                    // Break at punctuation.
++	bool         first_page = true;         // The speaker's name is read aloud before page 1 only.
++	const string quiet_spk  = info->speaker.empty() ? string() : ":" + info->speaker;
  	for (;;) {
  		// Draw the faces and this page of text into the overlay layer.  The
  		// current face's text is (re)drawn here, so keep its stored text
-@@ -640,6 +647,8 @@ void Conversation::show_npc_message(const char* msg) {
+@@ -640,6 +648,8 @@ void Conversation::show_npc_message(const char* msg) {
  		}
  		// More to show: display this page, wait for a click, then continue.
  		info->cur_text = string(msg, -height);
-+		TTS_say(info->cur_text, first_page ? info->speaker : string());
++		TTS_say(info->cur_text, first_page ? info->speaker : quiet_spk);
 +		first_page = false;
  		int  x;
  		int  y;
  		char c = 0;
-@@ -671,6 +680,7 @@ void Conversation::show_npc_message(const char* msg) {
+@@ -671,6 +681,7 @@ void Conversation::show_npc_message(const char* msg) {
  	info->last_text_height = height;
  	info->cur_text         = msg;
  	info->text_pending     = true;
-+	TTS_say(info->cur_text, first_page ? info->speaker : string());
++	TTS_say(info->cur_text, first_page ? info->speaker : quiet_spk);
  	gwin->set_painted();
  	//	gwin->show();
  }
@@ -511,16 +574,69 @@ index 92b4c23..66931de 100644
  	void change_face_frame(int frame, int slot);
  	void remove_face(int shape);
  	void remove_slot_face(int slot);    // SI.
+diff --git a/usecode/intrinsics.cc b/usecode/intrinsics.cc
+index 96e068d..01c497d 100644
+--- a/usecode/intrinsics.cc
++++ b/usecode/intrinsics.cc
+@@ -31,6 +31,7 @@
+ #include "Scroll_gump.h"
+ #include "ShortcutBar_gump.h"
+ #include "Sign_gump.h"
++#include "tts.h"
+ #include "actions.h"
+ #include "animate.h"
+ #include "barge.h"
+@@ -1026,7 +1027,8 @@ USECODE_INTRINSIC(display_runes) {
+ 		cnt = 1;    // Try with 1 element.
+ 	}
+ 	{
+-		Sign_gump sign(parms[0].get_int_value(), cnt);
++		Sign_gump   sign(parms[0].get_int_value(), cnt);
++		std::string spoken;    // All lines as plain text, for TTS.
+ 		for (int i = 0; i < cnt; i++) {
+ 			// Paint each line.
+ 			const Usecode_value& lval = !i ? parms[1].get_elem0() : parms[1].get_elem(i);
+@@ -1035,10 +1037,14 @@ USECODE_INTRINSIC(display_runes) {
+ 				std::string translated(str);
+ 				translate_usecode_text(translated);
+ 				sign.add_text(i, translated.c_str());
++				spoken += TTS_runes_to_text(translated) + ' ';
+ 			} else {
+ 				sign.add_text(i, std::string());
+ 			}
+ 		}
++		if (TTS_signs_enabled()) {
++			TTS_say(spoken, "[Sign]");    // Stopped by ~Text_gump when the sign closes.
++		}
+ 		int x;
+ 		int y;    // Paint it, and wait for click.
+ 		Get_click(x, y, Mouse::hand, nullptr, false, &sign);
 diff --git a/usecode/ucinternal.cc b/usecode/ucinternal.cc
-index ea94f46..0da9247 100644
+index ea94f46..9c419f2 100644
 --- a/usecode/ucinternal.cc
 +++ b/usecode/ucinternal.cc
-@@ -717,7 +717,7 @@ void Usecode_internal::show_npc_face(
+@@ -717,7 +717,23 @@ void Usecode_internal::show_npc_face(
  		init_conversation();    // jsf-Added 4/20/01 for SI-Lydia.
  	}
  	gwin->paint_dirty();
 -	conv->show_face(shape, frame, slot);
-+	conv->show_face(shape, frame, slot, npc ? npc->get_npc_name_string() : std::string());
++	Actor* spk = npc;
++	if (!spk && arg1.is_int()) {
++		const int n = std::abs(arg1.get_int_value());
++		if (n == 0 || n == 356) {
++			spk = gwin->get_main_actor();
++		} else if (n > 0 && n < gwin->get_num_npcs()) {
++			spk = gwin->get_npc(n);
++		}
++	}
++	if (!spk && this->frame && this->frame->caller_item) {
++		spk = this->frame->caller_item->as_actor();
++	}
++	std::string speaker = spk ? spk->get_npc_name() : std::string();
++	if (speaker.empty() && this->frame && this->frame->caller_item) {
++		speaker = this->frame->caller_item->get_name();
++	}
++	conv->show_face(shape, frame, slot, speaker);
  	//	user_choice = 0;     // Seems like a good idea.
  	// Also seems to create a conversation bug in Test of Love :-(
  }

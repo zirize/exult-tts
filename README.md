@@ -10,13 +10,16 @@ also printed to the terminal as `TTS: <line>`, which gives a readable history of
 ## What it does
 
 - **Conversations**: each page of an NPC's speech is spoken as it appears; clicking on to the next
-  page cuts the voice off and starts the next one. The first page is prefixed with the NPC's name;
-  nameless NPCs get no prefix.
+  page cuts the voice off and starts the next one. The first page is spoken with the NPC's name prefix
+  (`Iolo: ...`), and terminal output (`TTS: ...`) includes the speaker name across all pages.
 - **Books and scrolls**: the visible pages are read when opened or turned; closing the book stops speech.
+- **Signs and tombstones**: rune text on signs, plaques and gravestones is translated with ligature
+  expansion and read aloud when examined.
 - **Text cleanup**: the game's markup (`*` page breaks, `~`, `^`, `@`, font-mapped bytes) is
   turned into plain sentences.
-- **Audio options**: a new "Read aloud" on/off row, saved to `config/audio/tts/enabled`. It
-  shows "Read aloud (no command)" when the speech command is missing.
+- **Audio options**: a "Read aloud" toggle with three states (No / Yes / Yes + signs) in the Audio
+  options menu, saved to `config/audio/tts/enabled` and `config/audio/tts/signs`. It shows
+  "Read aloud (no command)" when the speech command is missing.
 - The command runs in its own process group with `posix_spawn` (no shell, so quotes in game text
   are safe) and is stopped with a signal to that group; nothing else on the system is killed.
 

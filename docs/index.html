@@ -80,11 +80,11 @@ footer{text-align:center;padding:32px 20px;border-top:1px solid var(--border);co
 <h2>What the patch does</h2>
 
 <h3>Conversations</h3>
-<p>Each page of an NPC's speech is spoken as it appears on screen. Clicking on to the next page cuts the voice off and starts the next page, so you never wait for a long line to finish. The first page is prefixed with the NPC's name; nameless NPCs get no prefix, and the Avatar's lines carry the name you chose.</p>
-<p>Exult's conversation code only knows the <em>face</em> it is showing, not who owns it. The name is taken one level up, where the usecode shows an NPC's face and still has the actor, and passed down with the face.</p>
+<p>Each page of an NPC's speech is spoken as it appears on screen. Clicking on to the next page cuts the voice off and starts the next page, so you never wait for a long line to finish. The first page is spoken with the NPC's name prefix (<code>Iolo: ...</code>); nameless NPCs get no prefix, and the Avatar's lines carry the name you chose.</p>
+<p>Exult's conversation code only knows the <em>face</em> it is showing, not who owns it. The name is resolved one level up, where usecode shows an NPC's face, and passed down with the face.</p>
 
-<h3>Books and scrolls</h3>
-<p>The visible pages are read when a book or scroll opens and each time you turn the page. Exult repaints these windows often, so a page that was already spoken is not repeated. Closing the book stops the voice.</p>
+<h3>Books, scrolls and signs</h3>
+<p>The visible pages are read when a book or scroll opens and each time you turn the page. Exult repaints these windows often, so a page that was already spoken is not repeated. Rune signs, plaques and gravestones are also expanded and read aloud when examined. Closing the window stops the voice.</p>
 
 <h3>Clean text</h3>
 <p>The game's text carries markup meant for its fonts: <code>*</code> for a page break, <code>~</code>, <code>^</code> for capitals, <code>@</code> for quote marks, and font-mapped bytes. These are turned into plain sentences before they reach the speech engine.</p>
@@ -93,7 +93,7 @@ footer{text-align:center;padding:32px 20px;border-top:1px solid var(--border);co
 <p>Every line is printed to standard output as <code>TTS: &lt;line&gt;</code>, voice on or off. Start Exult from a terminal and you get a readable transcript; <code>exult | tee talk.log</code> keeps it.</p>
 
 <h3>An on/off switch</h3>
-<p>The Audio options screen gets a <strong>Read aloud</strong> row, saved in <code>exult.cfg</code>. It says "Read aloud (no command)" if the speech command cannot be found.</p>
+<p>The Audio options screen gets a three-way <strong>Read aloud</strong> toggle (No / Yes / Yes + signs), saved in <code>exult.cfg</code>. It says "Read aloud (no command)" if the speech command cannot be found.</p>
 
 <div class="note"><strong>Safe with any game text.</strong> The speech command is started with <code>posix_spawn</code>, not a shell, so quotes and symbols in the text cannot break it. It runs in its own process group and is stopped by signalling that group — no other speech programs on your system are touched.</div>
 
